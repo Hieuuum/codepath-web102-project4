@@ -1,35 +1,112 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+	const [curDog, setCurDog] = useState(null);
+	const [banList, setBanList] = useState([]);
+	let limit = 100;
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+	const discoverRandom = () => {
+		callAPI().catch(console.error);
+		// console.log(Math.floor(Math.random() * 5));
+	};
+
+	const callAPI = async () => {
+		const response = await fetch(
+			"https://api.thedogapi.com/v1/images/search?limit=100",
+			{
+				headers: {
+					"x-api-key":
+						"live_LnIInUH8Hs8pAzDJGEQ4HpypTxar8kROgPtZ9QSJOz3oI3JoGUnOHvoyGfge1Nti",
+				},
+			}
+		);
+		const json = await response.json();
+
+		if (json.length === 0) {
+			alert("Oops! Something went wrong with that query, let's try again!");
+		} else {
+			let imgIndex = Math.floor(Math.random() * limit);
+			while (json[imgIndex].breeds.length == 0) {
+				imgIndex = Math.floor(Math.random() * limit);
+			}
+			console.log(json[imgIndex]);
+			setCurDog(json[imgIndex]);
+		}
+	};
+
+	const addToBanList = (e) => {
+		let content = e.target.innerHTML;
+		console.log(content);
+		if (!banList.includes(content)) {
+			setBanList((prev) => [...prev, content]);
+		}
+		console.log(banList);
+	};
+
+	const removeFromBanList = (e) => {
+		let content = e.target.innerHTML;
+		console.log(content);
+		setBanList((prev) => {
+			return prev.filter((tag) => tag != content);
+		});
+		console.log(banList);
+	};
+
+	return (
+		<>
+			<h1>Look for Dogs</h1>
+			<h2>Ban List:</h2>
+			{banList &&
+				banList.map((v) => {
+					return (
+						<p className="tag" onClick={removeFromBanList}>
+							{v}
+						</p>
+					);
+				})}
+			{curDog && curDog.breeds[0] && (
+				<div>
+					<h2>{curDog.breeds[0].name}</h2>
+					<div className="container">
+						{Object.entries(curDog.breeds[0]).map(([key, value]) => {
+							let displayVal;
+
+							if (typeof value === "object" && value !== null && value.metric) {
+								displayVal = value.metric;
+								if (key === "height") {
+									displayVal += " cm";
+								} else if (key === "weight") {
+									displayVal += " kg";
+								}
+							} else if (typeof value === "object" && value !== null) {
+								displayVal = JSON.stringify(value);
+							} else {
+								displayVal = value;
+							}
+
+							if (
+								key != "reference_image_id" &&
+								key != "id" &&
+								key != "name" &&
+								key != "temperament"
+							) {
+								return (
+									<p className="tag" key={key} onClick={addToBanList}>
+										{displayVal}
+									</p>
+								);
+							}
+						})}
+					</div>
+					<img src={curDog.url} width={300} height={200} />
+				</div>
+			)}
+			<button className="button" onClick={discoverRandom}>
+				Discover
+			</button>
+		</>
+	);
 }
 
-export default App
+export default App;
